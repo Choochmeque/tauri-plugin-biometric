@@ -4,11 +4,11 @@
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Default, Serialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AuthOptions {
     /// Enables authentication using the device's password. This feature is available on both Android and iOS.
-    pub allow_device_credential: bool,
+    pub allow_device_credential: Option<bool>,
     /// Label for the Cancel button. This feature is available on both Android and iOS.
     pub cancel_title: Option<String>,
     /// Specifies the text displayed on the fallback button if biometric authentication fails. This feature is available iOS only.
@@ -21,7 +21,14 @@ pub struct AuthOptions {
     pub confirmation_required: Option<bool>,
 }
 
-#[derive(Debug, Clone, serde_repr::Deserialize_repr)]
+#[derive(Serialize)]
+pub struct AuthenticatePayload {
+    pub reason: String,
+    #[serde(flatten)]
+    pub options: AuthOptions,
+}
+
+#[derive(Debug, Clone, serde_repr::Deserialize_repr, serde_repr::Serialize_repr)]
 #[repr(u8)]
 pub enum BiometryType {
     None = 0,
@@ -29,7 +36,7 @@ pub enum BiometryType {
     FaceID = 2,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Status {
     pub is_available: bool,

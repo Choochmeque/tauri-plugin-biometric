@@ -1,7 +1,31 @@
-// Copyright 2019-2023 Tauri Programme within The Commons Conservancy
-// SPDX-License-Identifier: Apache-2.0
-// SPDX-License-Identifier: MIT
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { cwd } from 'node:process'
+import typescript from '@rollup/plugin-typescript'
 
-import { createConfig } from '../../shared/rollup.config.js'
+const pkg = JSON.parse(readFileSync(join(cwd(), 'package.json'), 'utf8'))
 
-export default createConfig()
+export default {
+  input: 'guest-js/index.ts',
+  output: [
+    {
+      file: pkg.exports.import,
+      format: 'esm'
+    },
+    {
+      file: pkg.exports.require,
+      format: 'cjs'
+    }
+  ],
+  plugins: [
+    typescript({
+      declaration: true,
+      declarationDir: dirname(pkg.exports.import)
+    })
+  ],
+  external: [
+    /^@tauri-apps\/api/,
+    ...Object.keys(pkg.dependencies || {}),
+    ...Object.keys(pkg.peerDependencies || {})
+  ]
+}

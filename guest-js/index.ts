@@ -43,7 +43,6 @@ export interface AuthOptions {
   title?: string
   subtitle?: string
   confirmationRequired?: boolean
-  maxAttemps?: number
 }
 
 /**
@@ -68,10 +67,10 @@ export async function checkStatus(): Promise<Status> {
  */
 export async function authenticate(
   reason: string,
-  options?: AuthOptions
+  options: AuthOptions
 ): Promise<void> {
   await invoke('plugin:biometric|authenticate', {
-    reason,
-    ...options
+    reason: reason,
+    options: options
   })
 }
