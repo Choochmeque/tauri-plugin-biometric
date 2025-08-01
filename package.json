@@ -1,11 +1,24 @@
 {
-  "name": "@tauri-apps/plugin-biometric",
-  "version": "2.3.0",
+  "name": "@choochmeque/tauri-plugin-biometric",
+  "version": "0.1.0",
   "license": "MIT OR Apache-2.0",
   "authors": [
     "Tauri Programme within The Commons Conservancy"
   ],
-  "repository": "https://github.com/tauri-apps/plugins-workspace",
+  "description": "Prompt the user for biometric authentication on Android and iOS.",
+  "keywords": [
+    "tauri",
+    "biometric"
+  ],
+  "author": "You",
+  "bugs": {
+    "url": "https://github.com/Choochmeque/tauri-plugin-biometric/issues"
+  },
+  "homepage": "https://github.com/Choochmeque/tauri-plugin-biometric#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Choochmeque/tauri-plugin-biometric.git"
+  },
   "type": "module",
   "types": "./dist-js/index.d.ts",
   "main": "./dist-js/index.cjs",
