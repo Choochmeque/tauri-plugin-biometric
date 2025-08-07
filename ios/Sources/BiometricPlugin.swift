@@ -181,7 +181,7 @@ class BiometricPlugin: Plugin {
     }
     
     let exists = (status == errSecSuccess) || (status == errSecInteractionNotAllowed)
-    invoke.resolve(["exists": exists])
+    invoke.resolve(["hasData": exists])
   }
   
   @objc func setData(_ invoke: Invoke) throws {

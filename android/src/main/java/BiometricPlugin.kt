@@ -23,6 +23,22 @@ import app.tauri.plugin.Plugin
 import java.util.EnumMap
 import java.util.HashMap
 import kotlin.math.max
+import android.content.SharedPreferences
+import android.preference.PreferenceManager
+import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyProperties
+import android.util.Base64
+import androidx.core.content.ContextCompat
+import androidx.fragment.app.FragmentActivity
+import java.security.KeyPair
+import java.security.KeyPairGenerator
+import java.security.KeyStore
+import java.security.PrivateKey
+import java.security.PublicKey
+import java.util.concurrent.Executor
+import javax.crypto.Cipher
+import javax.crypto.BadPaddingException
+import javax.crypto.IllegalBlockSizeException
 
 enum class BiometryResultType {
     SUCCESS, FAILURE, ERROR
@@ -43,6 +59,35 @@ class AuthOptions {
     var maxAttemps: Int = 3
 }
 
+@InvokeArg
+class DataOptions {
+    lateinit var uid: String
+    lateinit var name: String
+}
+
+@InvokeArg
+class SetDataOptions {
+    lateinit var uid: String
+    lateinit var name: String
+    lateinit var data: String
+}
+
+@InvokeArg
+class GetDataOptions {
+    lateinit var uid: String
+    lateinit var name: String
+    var title: String? = null
+    var subtitle: String? = null
+    lateinit var reason: String
+    var cancelTitle: String? = null
+}
+
+@InvokeArg
+class RemoveDataOptions {
+    lateinit var name: String
+    var uid: String = "tauri_biometric_default"
+}
+
 @TauriPlugin
 class BiometricPlugin(private val activity: Activity): Plugin(activity) {
     private var biometryTypes: ArrayList<BiometryType> = arrayListOf()
@@ -58,6 +103,9 @@ class BiometricPlugin(private val activity: Activity): Plugin(activity) {
         const val RESULT_ERROR_MESSAGE = "errorMessage"
         const val DEVICE_CREDENTIAL = "allowDeviceCredential"
         const val CONFIRMATION_REQUIRED = "confirmationRequired"
+        
+        private const val CIPHER_CONFIG = "RSA/ECB/PKCS1Padding"
+        private const val ANDROID_KEYSTORE = "AndroidKeyStore"
 
         // Maps biometry error numbers to string error codes
         private var biometryErrorCodeMap: MutableMap<Int, String> = HashMap()
@@ -250,5 +298,186 @@ class BiometricPlugin(private val activity: Activity): Plugin(activity) {
 
     internal enum class BiometryType(val type: Int) {
         NONE(0), FINGERPRINT(1), FACE(2), IRIS(3);
+    }
+    
+    private fun generateKeyPair(keyName: String): KeyPair {
+        val keyPairGenerator = KeyPairGenerator.getInstance(
+            KeyProperties.KEY_ALGORITHM_RSA,
+            ANDROID_KEYSTORE
+        )
+        
+        val builder = KeyGenParameterSpec.Builder(
+            keyName,
+            KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
+        )
+            .setBlockModes(KeyProperties.BLOCK_MODE_ECB)
+            .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_PKCS1)
+            .setUserAuthenticationRequired(true)
+            .setInvalidatedByBiometricEnrollment(true)
+        
+        keyPairGenerator.initialize(builder.build())
+        
+        return keyPairGenerator.generateKeyPair()
+    }
+    
+    private fun getKeyPair(keyName: String): KeyPair? {
+        val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE)
+        keyStore.load(null)
+        
+        if (keyStore.containsAlias(keyName)) {
+            // Get private key
+            val privateKey = keyStore.getKey(keyName, null) as PrivateKey
+            
+            // Get public key
+            val publicKey = keyStore.getCertificate(keyName).publicKey
+            
+            // Return a key pair
+            return KeyPair(publicKey, privateKey)
+        }
+        return null
+    }
+
+    @Command
+    fun hasData(invoke: Invoke) {
+        val args = invoke.parseArgs(DataOptions::class.java)
+        
+        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(activity)
+        val result = JSObject()
+        result.put("hasData", sharedPreferences.contains(args.name))
+        invoke.resolve(result)
+    }
+
+    @Command
+    fun setData(invoke: Invoke) {
+        val args = invoke.parseArgs(SetDataOptions::class.java)
+        
+        try {
+            val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(activity)
+            
+            // Clear existing data
+            sharedPreferences.edit().remove(args.name).apply()
+            
+            // Delete the key from keystore
+            val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE)
+            keyStore.load(null)
+            keyStore.deleteEntry(args.uid)
+
+            // Generate or get key pair
+            val keyPair = generateKeyPair(args.uid)
+            
+            // Encrypt data
+            val rsaCipher = Cipher.getInstance(CIPHER_CONFIG)
+            rsaCipher.init(Cipher.ENCRYPT_MODE, keyPair.getPublic())
+
+            val encryptedData = Base64.encodeToString(
+                rsaCipher.doFinal(args.data.toByteArray()),
+                Base64.DEFAULT
+            )
+            
+            // Store encrypted data
+            sharedPreferences.edit().putString(args.name, encryptedData).commit()
+            
+            invoke.resolve()
+        } catch (e: Exception) {
+            invoke.reject("Failed to set data: ${e.message}")
+        }
+    }
+
+    @Command
+    fun getData(invoke: Invoke) {
+        val args = invoke.parseArgs(GetDataOptions::class.java)
+        
+        try {
+            val keyPair = getKeyPair(args.uid)
+            if (keyPair == null) {
+                invoke.reject("No key pair found")
+                return
+            }
+            
+            val rsaCipher = Cipher.getInstance(CIPHER_CONFIG)
+            rsaCipher.init(Cipher.DECRYPT_MODE, keyPair.getPrivate())
+            
+            val promptInfo = BiometricPrompt.PromptInfo.Builder()
+                .setTitle(args.title ?: (biometryNameMap[biometryTypes[0]] ?: ""))
+                .setSubtitle(args.subtitle)
+                .setDescription(args.reason)
+                .setNegativeButtonText(args.cancelTitle ?: "cancelTitle")
+                .build()
+            
+            val executor: Executor = ContextCompat.getMainExecutor(activity)
+            
+            val biometricPrompt = BiometricPrompt(
+                activity as FragmentActivity,
+                executor,
+                object : BiometricPrompt.AuthenticationCallback() {
+                    override fun onAuthenticationSucceeded(
+                        result: BiometricPrompt.AuthenticationResult
+                    ) {
+                        super.onAuthenticationSucceeded(result)
+                        
+                        try {
+                            val cipher = result.cryptoObject?.cipher
+                                ?: throw Exception("Cipher is null")
+                            
+                            val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(activity)
+                            val encryptedData = sharedPreferences.getString(args.name, null)
+                                ?: throw Exception("No data found")
+
+                            val decryptedBytes = cipher.doFinal(
+                                Base64.decode(encryptedData, Base64.DEFAULT)
+                            )
+                            
+                            val resultObject = JSObject()
+                            resultObject.put("uid", args.uid)
+                            resultObject.put("name", args.name)
+                            resultObject.put("data", String(decryptedBytes))
+                            invoke.resolve(resultObject)
+                        } catch (e: BadPaddingException) {
+                            invoke.reject("Decryption failed (BadPadding) - likely wrong key or cipher config")
+                        } catch (e: IllegalBlockSizeException) {
+                            invoke.reject("Decryption failed (IllegalBlockSize) - likely wrong key or cipher config")
+                        } catch (e: Exception) {
+                            invoke.reject("Failed to decrypt data: ${e.message}")
+                        }
+                    }
+                    
+                    override fun onAuthenticationError(
+                        errorCode: Int,
+                        errString: CharSequence
+                    ) {
+                        super.onAuthenticationError(errorCode, errString)
+                        invoke.reject(errString.toString(), biometryErrorCodeMap[errorCode])
+                    }
+                    
+                    override fun onAuthenticationFailed() {
+                        super.onAuthenticationFailed()
+                        // Don't reject here, let the user retry
+                    }
+                }
+            )
+            
+            biometricPrompt.authenticate(promptInfo, BiometricPrompt.CryptoObject(rsaCipher))
+        } catch (e: Exception) {
+            invoke.reject("Failed to get data: ${e.message}")
+        }
+    }
+
+    @Command
+    fun removeData(invoke: Invoke) {
+        val args = invoke.parseArgs(RemoveDataOptions::class.java)
+        
+        try {
+            val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(activity)
+            sharedPreferences.edit().remove(args.name).apply()
+            
+            // Delete the key from keystore
+            val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE)
+            keyStore.load(null)
+            keyStore.deleteEntry(args.uid)
+            
+            invoke.resolve()
+        } catch (e: Exception) {
+            invoke.reject("Failed to remove data: ${e.message}")
+        }
     }
 }

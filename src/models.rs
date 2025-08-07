@@ -47,6 +47,12 @@ pub struct Status {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct HasDataResponse {
+    pub has_data: bool,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DataOptions {
     pub uid: String,
     pub name: String,

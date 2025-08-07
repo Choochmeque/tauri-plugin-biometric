@@ -41,6 +41,7 @@ impl<R: Runtime> Biometric<R> {
     pub fn has_data(&self, options: DataOptions) -> crate::Result<bool> {
         self.0
             .run_mobile_plugin("hasData", options)
+            .and_then(|result: HasDataResponse| Ok(result.has_data))
             .map_err(Into::into)
     }
 
