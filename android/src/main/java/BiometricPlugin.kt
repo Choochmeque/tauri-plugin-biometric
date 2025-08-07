@@ -85,7 +85,7 @@ class GetDataOptions {
 @InvokeArg
 class RemoveDataOptions {
     lateinit var name: String
-    var uid: String = "tauri_biometric_default"
+    lateinit var uid: String
 }
 
 @TauriPlugin
