@@ -100,7 +100,7 @@ export async function authenticate(
  * @returns A promise resolving to true if data exists, false otherwise
  */
 export async function hasData(options: DataOptions): Promise<boolean> {
-  return await invoke('plugin:biometric|hasData', { options })
+  return await invoke('plugin:biometric|has_data', { options })
 }
 
 /**
@@ -109,7 +109,7 @@ export async function hasData(options: DataOptions): Promise<boolean> {
  * @returns A promise resolving to the DataOptions containing the retrieved data
  */
 export async function getData(options: GetDataOptions): Promise<DataOptions> {
-  return await invoke('plugin:biometric|getData', { options })
+  return await invoke('plugin:biometric|get_data', { options })
 }
 
 /**
@@ -118,7 +118,7 @@ export async function getData(options: GetDataOptions): Promise<DataOptions> {
  * @returns A promise that resolves when the data is stored
  */
 export async function setData(options: SetDataOptions): Promise<void> {
-  await invoke('plugin:biometric|setData', { options })
+  await invoke('plugin:biometric|set_data', { options })
 }
 
 /**
@@ -127,5 +127,5 @@ export async function setData(options: SetDataOptions): Promise<void> {
  * @returns A promise that resolves when the data is removed
  */
 export async function removeData(options: RemoveDataOptions): Promise<void> {
-  await invoke('plugin:biometric|removeData', { options })
+  await invoke('plugin:biometric|remove_data', { options })
 }

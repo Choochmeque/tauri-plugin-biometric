@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-License-Identifier: MIT
 
-const COMMANDS: &[&str] = &["authenticate", "status"];
+const COMMANDS: &[&str] = &["authenticate", "status", "has_data", "get_data", "set_data", "remove_data"];
 
 fn main() {
     let result = tauri_plugin::Builder::new(COMMANDS)

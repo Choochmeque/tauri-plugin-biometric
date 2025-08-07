@@ -187,11 +187,6 @@ class BiometricPlugin: Plugin {
   @objc func setData(_ invoke: Invoke) throws {
     let args = try invoke.parseArgs(SetDataOptions.self)
     
-    guard let data = Data(base64Encoded: args.data) else {
-      invoke.reject("Invalid base64 data")
-      return
-    }
-    
     var flags: SecAccessControlCreateFlags = .userPresence
     
     guard let accessControl = SecAccessControlCreateWithFlags(
@@ -207,7 +202,7 @@ class BiometricPlugin: Plugin {
     let attributes: [String: Any] = [
       kSecClass as String: kSecClassGenericPassword,
       kSecAttrAccount as String: args.name,
-      kSecValueData as String: data,
+      kSecValueData as String: args.data,
       kSecAttrService as String: args.uid,
       kSecAttrAccessControl as String: accessControl
     ]
@@ -221,7 +216,7 @@ class BiometricPlugin: Plugin {
         kSecAttrService as String: args.uid
       ]
       let updateAttributes: [String: Any] = [
-        kSecValueData as String: data,
+        kSecValueData as String: args.data,
         kSecAttrAccessControl as String: accessControl
       ]
       status = SecItemUpdate(query as CFDictionary, updateAttributes as CFDictionary)
