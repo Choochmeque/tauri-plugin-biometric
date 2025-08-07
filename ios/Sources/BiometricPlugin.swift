@@ -29,6 +29,23 @@ struct AuthOptions: Decodable {
   var cancelTitle: String?
 }
 
+struct DataOptions: Decodable {
+  let uid: String
+  let name: String
+}
+
+struct SetDataOptions: Decodable {
+  let uid: String
+  let name: String
+  let data: String
+}
+
+struct GetDataOptions: Decodable {
+  let uid: String
+  let name: String
+  let reason: String
+}
+
 class BiometricPlugin: Plugin {
   let authenticationErrorCodeMap: [Int: String] = [
     0: "",
@@ -96,7 +113,7 @@ class BiometricPlugin: Plugin {
       ])
     }
   }
-
+  
   @objc func authenticate(_ invoke: Invoke) throws {
     let args = try invoke.parseArgs(AuthOptions.self)
 
@@ -143,7 +160,136 @@ class BiometricPlugin: Plugin {
         }
       }
     }
+  }
 
+  @objc func hasData(_ invoke: Invoke) throws {
+    let args = try invoke.parseArgs(DataOptions.self)
+    
+    let query: [String: Any] = [
+      kSecClass as String: kSecClassGenericPassword,
+      kSecMatchLimit as String: kSecMatchLimitOne,
+      kSecUseAuthenticationUI as String: kSecUseAuthenticationUIFail,
+      kSecAttrAccount as String: args.name,
+      kSecAttrService as String: args.uid
+    ]
+    
+    var dataTypeRef: CFTypeRef?
+    let status = SecItemCopyMatching(query as CFDictionary, &dataTypeRef)
+    
+    if status != errSecSuccess && status != errSecInteractionNotAllowed {
+      print("hasData Error: \(status)")
+    }
+    
+    let exists = (status == errSecSuccess) || (status == errSecInteractionNotAllowed)
+    invoke.resolve(["exists": exists])
+  }
+  
+  @objc func setData(_ invoke: Invoke) throws {
+    let args = try invoke.parseArgs(SetDataOptions.self)
+    
+    guard let data = Data(base64Encoded: args.data) else {
+      invoke.reject("Invalid base64 data")
+      return
+    }
+    
+    var flags: SecAccessControlCreateFlags = .userPresence
+    
+    guard let accessControl = SecAccessControlCreateWithFlags(
+      kCFAllocatorDefault,
+      kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
+      flags,
+      nil
+    ) else {
+      invoke.reject("Error creating access control")
+      return
+    }
+    
+    let attributes: [String: Any] = [
+      kSecClass as String: kSecClassGenericPassword,
+      kSecAttrAccount as String: args.name,
+      kSecValueData as String: data,
+      kSecAttrService as String: args.uid,
+      kSecAttrAccessControl as String: accessControl
+    ]
+    
+    var status = SecItemAdd(attributes as CFDictionary, nil)
+    
+    if status == errSecDuplicateItem {
+      let query: [String: Any] = [
+        kSecClass as String: kSecClassGenericPassword,
+        kSecAttrAccount as String: args.name,
+        kSecAttrService as String: args.uid
+      ]
+      let updateAttributes: [String: Any] = [
+        kSecValueData as String: data,
+        kSecAttrAccessControl as String: accessControl
+      ]
+      status = SecItemUpdate(query as CFDictionary, updateAttributes as CFDictionary)
+      
+      if status != errSecSuccess {
+        invoke.reject("Error updating item in keychain: \(status)")
+        return
+      }
+    } else if status != errSecSuccess {
+      invoke.reject("Error adding item to keychain: \(status)")
+      return
+    }
+    
+    invoke.resolve()
+  }
+  
+  @objc func getData(_ invoke: Invoke) throws {
+    let args = try invoke.parseArgs(GetDataOptions.self)
+    
+    let query: [String: Any] = [
+      kSecClass as String: kSecClassGenericPassword,
+      kSecMatchLimit as String: kSecMatchLimitOne,
+      kSecReturnData as String: kCFBooleanTrue!,
+      kSecAttrAccount as String: args.name,
+      kSecAttrService as String: args.uid,
+      kSecUseOperationPrompt as String: args.reason
+    ]
+    
+    DispatchQueue.global(qos: .userInitiated).async {
+      var dataTypeRef: CFTypeRef?
+      let status = SecItemCopyMatching(query as CFDictionary, &dataTypeRef)
+      
+      DispatchQueue.main.async {
+        if status == errSecSuccess, let data = dataTypeRef as? Data {
+          let base64String = data.base64EncodedString()
+          invoke.resolve(["data": base64String])
+        } else {
+          if status == errSecUserCanceled {
+            invoke.reject("User canceled", code: "userCancel")
+          } else {
+            invoke.reject("Error retrieving item from keychain: \(status)")
+          }
+        }
+      }
+    }
+  }
+  
+  @objc func removeData(_ invoke: Invoke) throws {
+    let args = try invoke.parseArgs(DataOptions.self)
+    
+    let query: [String: Any] = [
+      kSecClass as String: kSecClassGenericPassword,
+      kSecAttrAccount as String: args.name,
+      kSecAttrService as String: args.uid
+    ]
+    
+    DispatchQueue.global(qos: .userInitiated).async {
+      let status = SecItemDelete(query as CFDictionary)
+      
+      DispatchQueue.main.async {
+        let success = (status == errSecSuccess) || (status == errSecItemNotFound)
+        if success {
+          invoke.resolve()
+        } else {
+          invoke.reject("Error deleting item from keychain: \(status)")
+        }
+      }
+    }
   }
 }
 

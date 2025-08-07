@@ -37,4 +37,22 @@ impl<R: Runtime> Biometric<R> {
             .run_mobile_plugin("authenticate", AuthenticatePayload { reason, options })
             .map_err(Into::into)
     }
+
+    pub fn get_data(&self, options: GetDataOptions) -> crate::Result<DataOptions> {
+        self.0
+            .run_mobile_plugin("getData", options)
+            .map_err(Into::into)
+    }
+
+    pub fn set_data(&self, options: SetDataOptions) -> crate::Result<()> {
+        self.0
+            .run_mobile_plugin("setData", options)
+            .map_err(Into::into)
+    }
+
+    pub fn remove_data(&self, options: RemoveDataOptions) -> crate::Result<()> {
+        self.0
+            .run_mobile_plugin("removeData", options)
+            .map_err(Into::into)
+    }
 }

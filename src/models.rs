@@ -44,3 +44,28 @@ pub struct Status {
     pub error: Option<String>,
     pub error_code: Option<String>,
 }
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DataOptions {
+    pub uid: String,
+    pub name: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GetDataOptions {
+  pub uid: String,
+  pub name: String,
+  pub reason: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SetDataOptions {
+  pub uid: String,
+  pub name: String,
+  pub data: String,
+}
+
+pub type RemoveDataOptions = DataOptions;

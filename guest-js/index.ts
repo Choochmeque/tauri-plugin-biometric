@@ -45,6 +45,25 @@ export interface AuthOptions {
   confirmationRequired?: boolean
 }
 
+export interface DataOptions {
+  uid: string
+  name: string
+}
+
+export interface GetDataOptions {
+  uid: string
+  name: string
+  reason: string
+}
+
+export interface SetDataOptions {
+  uid: string
+  name: string
+  data: string
+}
+
+export type RemoveDataOptions = DataOptions
+
 /**
  * Checks if the biometric authentication is available.
  * @returns a promise resolving to an object containing all the information about the status of the biometry.
@@ -73,4 +92,31 @@ export async function authenticate(
     reason: reason,
     options: options
   })
+}
+
+/**
+ * Gets secure data associated with biometric authentication.
+ * @param options The options containing uid, name, and reason for authentication
+ * @returns A promise resolving to the DataOptions containing the retrieved data
+ */
+export async function getData(options: GetDataOptions): Promise<DataOptions> {
+  return await invoke('plugin:biometric|getData', { options })
+}
+
+/**
+ * Sets secure data that requires biometric authentication to access.
+ * @param options The options containing uid, name, and data to store
+ * @returns A promise that resolves when the data is stored
+ */
+export async function setData(options: SetDataOptions): Promise<void> {
+  await invoke('plugin:biometric|setData', { options })
+}
+
+/**
+ * Removes secure data associated with biometric authentication.
+ * @param options The options containing uid and name of the data to remove
+ * @returns A promise that resolves when the data is removed
+ */
+export async function removeData(options: RemoveDataOptions): Promise<void> {
+  await invoke('plugin:biometric|removeData', { options })
 }

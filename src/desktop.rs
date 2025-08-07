@@ -18,7 +18,19 @@ impl<R: Runtime> Biometric<R> {
         Err(crate::Error::from(std::io::Error::new(std::io::ErrorKind::Other, "Biometric is not supported on desktop platforms")))
     }
 
-    pub fn authenticate(&self, reason: String, options: AuthOptions) -> crate::Result<()> {
+    pub fn authenticate(&self, _reason: String, _options: AuthOptions) -> crate::Result<()> {
+        Err(crate::Error::from(std::io::Error::new(std::io::ErrorKind::Other, "Biometric is not supported on desktop platforms")))
+    }
+
+    pub fn get_data(&self, _options: GetDataOptions) -> crate::Result<DataOptions> {
+        Err(crate::Error::from(std::io::Error::new(std::io::ErrorKind::Other, "Biometric is not supported on desktop platforms")))
+    }
+
+    pub fn set_data(&self, _options: SetDataOptions) -> crate::Result<()> {
+        Err(crate::Error::from(std::io::Error::new(std::io::ErrorKind::Other, "Biometric is not supported on desktop platforms")))
+    }
+
+    pub fn remove_data(&self, _options: RemoveDataOptions) -> crate::Result<()> {
         Err(crate::Error::from(std::io::Error::new(std::io::ErrorKind::Other, "Biometric is not supported on desktop platforms")))
     }
 }
