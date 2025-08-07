@@ -1,6 +1,6 @@
 {
   "name": "@choochmeque/tauri-plugin-biometric",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "license": "MIT OR Apache-2.0",
   "authors": [
     "Tauri Programme within The Commons Conservancy"
