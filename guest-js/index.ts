@@ -95,6 +95,15 @@ export async function authenticate(
 }
 
 /**
+ * Checks if secure data exists for the given uid and name.
+ * @param options The options containing uid and name to check
+ * @returns A promise resolving to true if data exists, false otherwise
+ */
+export async function hasData(options: DataOptions): Promise<boolean> {
+  return await invoke('plugin:biometric|hasData', { options })
+}
+
+/**
  * Gets secure data associated with biometric authentication.
  * @param options The options containing uid, name, and reason for authentication
  * @returns A promise resolving to the DataOptions containing the retrieved data

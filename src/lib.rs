@@ -40,8 +40,12 @@ impl<R: Runtime, T: Manager<R>> crate::BiometricExt<R> for T {
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
     Builder::new("biometric")
         .invoke_handler(tauri::generate_handler![
-        commands::status,
-        commands::authenticate,
+            commands::status,
+            commands::authenticate,
+            commands::has_data,
+            commands::get_data,
+            commands::set_data,
+            commands::remove_data,
         ])
         .setup(|app, api| {
             #[cfg(mobile)]

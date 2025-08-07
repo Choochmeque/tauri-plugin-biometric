@@ -38,6 +38,12 @@ impl<R: Runtime> Biometric<R> {
             .map_err(Into::into)
     }
 
+    pub fn has_data(&self, options: DataOptions) -> crate::Result<bool> {
+        self.0
+            .run_mobile_plugin("hasData", options)
+            .map_err(Into::into)
+    }
+
     pub fn get_data(&self, options: GetDataOptions) -> crate::Result<DataOptions> {
         self.0
             .run_mobile_plugin("getData", options)

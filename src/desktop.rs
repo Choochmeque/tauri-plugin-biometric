@@ -22,6 +22,10 @@ impl<R: Runtime> Biometric<R> {
         Err(crate::Error::from(std::io::Error::new(std::io::ErrorKind::Other, "Biometric is not supported on desktop platforms")))
     }
 
+    pub fn has_data(&self, _options: DataOptions) -> crate::Result<bool> {
+        Err(crate::Error::from(std::io::Error::new(std::io::ErrorKind::Other, "Biometric is not supported on desktop platforms")))
+    }
+    
     pub fn get_data(&self, _options: GetDataOptions) -> crate::Result<DataOptions> {
         Err(crate::Error::from(std::io::Error::new(std::io::ErrorKind::Other, "Biometric is not supported on desktop platforms")))
     }
