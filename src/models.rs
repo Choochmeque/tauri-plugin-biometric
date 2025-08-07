@@ -54,6 +54,14 @@ pub struct DataOptions {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct DataResponse {
+    pub uid: String,
+    pub name: String,
+    pub data: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GetDataOptions {
   pub uid: String,
   pub name: String,

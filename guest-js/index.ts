@@ -50,6 +50,12 @@ export interface DataOptions {
   name: string
 }
 
+export interface DataResponse {
+  uid: string
+  name: string
+  data: string
+}
+
 export interface GetDataOptions {
   uid: string
   name: string
@@ -108,7 +114,7 @@ export async function hasData(options: DataOptions): Promise<boolean> {
  * @param options The options containing uid, name, and reason for authentication
  * @returns A promise resolving to the DataOptions containing the retrieved data
  */
-export async function getData(options: GetDataOptions): Promise<DataOptions> {
+export async function getData(options: GetDataOptions): Promise<DataResponse> {
   return await invoke('plugin:biometric|get_data', { options })
 }
 

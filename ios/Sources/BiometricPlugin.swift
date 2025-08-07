@@ -177,7 +177,7 @@ class BiometricPlugin: Plugin {
     let status = SecItemCopyMatching(query as CFDictionary, &dataTypeRef)
     
     if status != errSecSuccess && status != errSecInteractionNotAllowed {
-      print("hasData Error: \(status)")
+        Logger.debug("hasData Error: \(status)")
     }
     
     let exists = (status == errSecSuccess) || (status == errSecInteractionNotAllowed)
@@ -187,6 +187,11 @@ class BiometricPlugin: Plugin {
   @objc func setData(_ invoke: Invoke) throws {
     let args = try invoke.parseArgs(SetDataOptions.self)
     
+    guard let valueData = args.data.data(using: .utf8) else {
+      invoke.reject("Invalid data encoding")
+      return
+    }
+
     var flags: SecAccessControlCreateFlags = .userPresence
     
     guard let accessControl = SecAccessControlCreateWithFlags(
@@ -202,7 +207,7 @@ class BiometricPlugin: Plugin {
     let attributes: [String: Any] = [
       kSecClass as String: kSecClassGenericPassword,
       kSecAttrAccount as String: args.name,
-      kSecValueData as String: args.data,
+      kSecValueData as String: valueData,
       kSecAttrService as String: args.uid,
       kSecAttrAccessControl as String: accessControl
     ]
@@ -216,7 +221,7 @@ class BiometricPlugin: Plugin {
         kSecAttrService as String: args.uid
       ]
       let updateAttributes: [String: Any] = [
-        kSecValueData as String: args.data,
+        kSecValueData as String: valueData,
         kSecAttrAccessControl as String: accessControl
       ]
       status = SecItemUpdate(query as CFDictionary, updateAttributes as CFDictionary)
@@ -251,8 +256,11 @@ class BiometricPlugin: Plugin {
       
       DispatchQueue.main.async {
         if status == errSecSuccess, let data = dataTypeRef as? Data {
-          let base64String = data.base64EncodedString()
-          invoke.resolve(["data": base64String])
+          if let string = String(data: data, encoding: .utf8) {
+              invoke.resolve(["uid": args.uid, "name": args.name, "data": string])
+          } else {
+              invoke.reject("Failed to decode UTF-8 string")
+          }
         } else {
           if status == errSecUserCanceled {
             invoke.reject("User canceled", code: "userCancel")

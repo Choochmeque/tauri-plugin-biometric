@@ -44,7 +44,7 @@ impl<R: Runtime> Biometric<R> {
             .map_err(Into::into)
     }
 
-    pub fn get_data(&self, options: GetDataOptions) -> crate::Result<DataOptions> {
+    pub fn get_data(&self, options: GetDataOptions) -> crate::Result<DataResponse> {
         self.0
             .run_mobile_plugin("getData", options)
             .map_err(Into::into)
