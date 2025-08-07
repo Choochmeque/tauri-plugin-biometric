@@ -31,7 +31,7 @@ pub(crate) async fn has_data<R: Runtime>(
 pub(crate) async fn get_data<R: Runtime>(
     options: GetDataOptions,
     app: AppHandle<R>,
-) -> Result<DataOptions> {
+) -> Result<DataResponse> {
     app.biometric().get_data(options)
 }
 
