@@ -72,6 +72,7 @@ pub struct GetDataOptions {
   pub uid: String,
   pub name: String,
   pub reason: String,
+  pub cancel_title: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

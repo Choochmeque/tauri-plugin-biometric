@@ -60,6 +60,7 @@ export interface GetDataOptions {
   uid: string
   name: string
   reason: string
+  cancelTitle?: string
 }
 
 export interface SetDataOptions {
